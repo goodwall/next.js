@@ -511,8 +511,6 @@ export default class Router implements BaseRouter {
   components: { [pathname: string]: PrivateRouteInfo }
   // Static Data Cache
   sdc: { [asPath: string]: object } = {}
-  // In-flight Server Data Requests, for deduping
-  sdr: { [asPath: string]: Promise<object> } = {}
 
   sub: Subscription
   clc: ComponentLoadCancel
@@ -1617,20 +1615,13 @@ export default class Router implements BaseRouter {
     })
   }
 
-  _getServerData(dataHref: string): Promise<object> {
-    const { href: resourceKey } = new URL(dataHref, window.location.href)
-    if (this.sdr[resourceKey]) {
-      return this.sdr[resourceKey]
-    }
-    return (this.sdr[resourceKey] = fetchNextData(dataHref, this.isSsr)
-      .then((data) => {
-        delete this.sdr[resourceKey]
-        return data
-      })
-      .catch((err) => {
-        delete this.sdr[resourceKey]
-        throw err
-      }))
+  _getServerData(): Promise<object> {
+    return Promise.resolve({
+      pageProps: {
+        useClientData: true
+      },
+      __N_SSP: true
+    });
   }
 
   getInitialProps(
